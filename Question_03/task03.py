@@ -10,8 +10,6 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-IMGUR_CLIENT_ID = os.getenv("IMGUR_CLIENT_ID")  # Optional
-
 def download_image(url):
     try:
         response = requests.get(url, timeout=10)
@@ -64,7 +62,7 @@ def handle_url(url):
     result = {"image_url": url}
     image_data = download_image(url)
 
-    if isinstance(image_data, str):  # error message
+    if isinstance(image_data, str): 
         result["status"] = image_data
     else:
         img_result = process_image(image_data)
