@@ -1,106 +1,70 @@
-import argparse
-import csv
-import io
-import os
-import base64
-import requests
-import json
+import requests, csv, os, base64, json
 from PIL import Image
-from dotenv import load_dotenv
-
-load_dotenv()
+from io import BytesIO
+import sys
 
 def download_image(url):
     try:
         response = requests.get(url, timeout=10)
         response.raise_for_status()
-        return response.content
-    except requests.exceptions.RequestException as e:
-        return f"error - {str(e)}"
+        return Image.open(BytesIO(response.content)), len(response.content)
+    except Exception as e:
+        return None, f"error - {str(e)}"
 
-def process_image(image_bytes):
+def resize_image(img, size=(320, 568)):
+    img_copy = img.copy()
+    img_copy.thumbnail(size)
+    return img_copy
+
+def encode_image_to_base64(image):
     try:
-        img = Image.open(io.BytesIO(image_bytes))
-        resolution = f"{img.width}x{img.height}"
+        buffered = BytesIO()
+        image = image.convert("RGB") if image.mode in ("RGBA", "P") else image
+        image.save(buffered, format='PNG')  
+        return base64.b64encode(buffered.getvalue()).decode('utf-8')
+    except Exception as e:
+        return None
 
-        
-        original_buffer = io.BytesIO()
-        img.save(original_buffer, format="JPEG")
-        original_b64 = base64.b64encode(original_buffer.getvalue()).decode()
+def process_image(url):
+    img, result = download_image(url)
+    if img is None:
+        return {"image_url": url, "status": result}
 
-        
-        img.thumbnail((320, 568))
-        resized_buffer = io.BytesIO()
-        img.save(resized_buffer, format="JPEG")
-        resized_b64 = base64.b64encode(resized_buffer.getvalue()).decode()
-
-        size = len(image_bytes)
+    try:
+        width, height = img.size
+        size_bytes = result
+        resized_img = resize_image(img)
         return {
+            "image_url": url,
             "status": "success",
-            "original_image64": original_b64,
-            "resized_image64": resized_b64,
-            "size": size,
-            "resolution": resolution
+            "original_image64": encode_image_to_base64(img),
+            "resized_image64": encode_image_to_base64(resized_img),
+            "size": size_bytes,
+            "resolution": f"{width}x{height}"
         }
     except Exception as e:
-        return {"status": f"error - unable to process image: {str(e)}"}
+        return {"image_url": url, "status": f"error - {str(e)}"}
 
-def upload_to_imgur(image_b64):
-    if not IMGUR_CLIENT_ID:
-        return None
-    try:
-        headers = {"Authorization": f"Client-ID {IMGUR_CLIENT_ID}"}
-        data = {"image": image_b64, "type": "base64"}
-        response = requests.post("https://api.imgur.com/3/image", headers=headers, data=data)
-        if response.status_code == 200:
-            return response.json()["data"]["link"]
-    except Exception as e:
-        return None
-    return None
-
-def handle_url(url):
-    result = {"image_url": url}
-    image_data = download_image(url)
-
-    if isinstance(image_data, str): 
-        result["status"] = image_data
+def main(input_arg):
+    output = []
+    if input_arg.lower().endswith(".csv"):
+        with open(input_arg, newline='') as csvfile:
+            reader = csv.reader(csvfile)
+            for row in reader:
+                url = row[0]
+                output.append(process_image(url))
     else:
-        img_result = process_image(image_data)
-        result.update(img_result)
-        if img_result.get("status") == "success":
-            imgur_link = upload_to_imgur(img_result["resized_image64"])
-            if imgur_link:
-                result["imgur_link"] = imgur_link
-    return result
-
-def read_csv(csv_path):
-    urls = []
-    with open(csv_path, newline='') as f:
-        reader = csv.reader(f)
-        for row in reader:
-            urls.append(row[0])
-    return urls
-
-def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument("input", help="Image URL or path to CSV file")
-    args = parser.parse_args()
-
-    input_path = args.input
-    results = []
-
-    if input_path.endswith(".csv"):
-        urls = read_csv(input_path)
-        for url in urls:
-            print(f"Processing {url}")
-            results.append(handle_url(url))
-    else:
-        results.append(handle_url(input_path))
+        output.append(process_image(input_arg))
 
     with open("output.json", "w") as f:
-        json.dump(results, f, indent=2)
-
-    print("✅ Processing complete. Output saved to output.json")
+        json.dump(output, f, indent=2)
+    print("Process completed! Check output.json")
 
 if __name__ == "__main__":
-    main()
+    if len(sys.argv) != 2:
+        print("Usage: python image_processor.py <image_url_or_csv_path>")
+    else:
+        main(sys.argv[1])
+
+
+# png link url - https://upload.wikimedia.org/wikipedia/commons/4/47/PNG_transparency_demonstration_1.png
