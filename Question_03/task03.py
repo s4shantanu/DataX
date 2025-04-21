@@ -1,7 +1,8 @@
-import requests, csv, os, base64, json
+import requests, csv, base64, json
 from PIL import Image
 from io import BytesIO
 import sys
+
 
 def download_image(url):
     try:
@@ -65,6 +66,3 @@ if __name__ == "__main__":
         print("Usage: python image_processor.py <image_url_or_csv_path>")
     else:
         main(sys.argv[1])
-
-
-# png link url - https://upload.wikimedia.org/wikipedia/commons/4/47/PNG_transparency_demonstration_1.png

@@ -31,5 +31,5 @@ Every important action in the project—like creating a new project—is automat
 
 ##  3. Image Downloader & Processor (CLI Tool)
 
-python3 main.py "(URL)"
-python3 main.py machine.csv
+python3 task03.py "https://upload.wikimedia.org/wikipedia/commons/4/47/PNG_transparency_demonstration_1.png"
+python3 task03.py machine.csv

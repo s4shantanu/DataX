@@ -29,7 +29,6 @@ class Task(models.Model):
         return self.title
 
 
-#user activity -
 class UserActivity(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     action = models.CharField(max_length=255)

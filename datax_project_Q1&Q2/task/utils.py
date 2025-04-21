@@ -13,7 +13,6 @@ def get_client_ip(request):
     return ip
 
 
-
 def log_user_activity(request, action):
 
     if request.user.is_authenticated:

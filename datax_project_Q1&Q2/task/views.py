@@ -51,6 +51,7 @@ class ProjectViewSet(viewsets.ModelViewSet):
 
         writer = csv.writer(response)
         writer.writerow(['Name', 'Description', 'Start Date', 'End Date', 'Duration'])
+
         writer.writerow([project.name, project.description, project.start_date, project.end_date, project.duration])
         return response
 
@@ -62,10 +63,10 @@ class ProjectViewSet(viewsets.ModelViewSet):
         return Response({'status': 'Projects soft-deleted'})
 
 
-
 class TaskViewSet(viewsets.ModelViewSet):
     serializer_class = TaskSerializer
 
     def get_queryset(self):
         project_id = self.kwargs['project_pk']
         return Task.objects.filter(project_id=project_id)
+ 
